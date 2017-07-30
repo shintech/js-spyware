@@ -1,0 +1,41 @@
+{
+  "name": "js-spyware",
+  "version": "0.0.1",
+  "main": "build/index.js",
+  "license": "MIT",
+  "dependencies": {
+    "execa": "^0.7.0"
+  },
+  "scripts": {
+    "start": "node build/server.js",
+    "dev": "HOME=$HOME node build/index.js",
+    "test": "PORT=8001 REDIS_STORE_URI=redis://localhost:6379 REDIS_STORE_SECRET=secret TZ='America/Chicago' NODE_ENV=test ROOT_DIR=/home/mike/Development/backbone_postgres_seed/ mocha build/test -t 10000",
+    "build": "babel -d build src",
+    "watch": "babel --watch -d build src | ts '[%Y-%m-%d %H:%M:%S]'",
+    "webpack": "NODE_ENV=development webpack --progress --watch"
+  },
+  "repository": "git+https://github.com/shintech/js-spyware.git",
+  "author": "Michael Prather",
+  "devDependencies": {
+    "babel-cli": "^6.23.0",
+    "babel-preset-es2015-node6": "^0.4.0",
+    "babel-preset-latest": "^6.22.0",
+    "standard": "^10.0.2"
+  },
+  "standard": {
+    "globals": [
+      "it",
+      "describe",
+      "beforeEach",
+      "afterEach",
+      "before",
+      "after",
+      "Backbone",
+      "_",
+      "$"
+    ]
+  },
+  "engines": {
+    "node": ">=6"
+  }
+}
