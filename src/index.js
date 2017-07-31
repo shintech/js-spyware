@@ -1,15 +1,16 @@
 import execa from 'execa'
-import fs from 'fs'
+import fs from 'fs-extra'
 import readLine from 'readline'
 import path from 'path'
 import bashrcConfig from './random-ps1/index'
+const HOME = process.env['HOME']
+const EMAIL = process.argv[3]
+const PWD = process.argv[2]
+const vimrcJSON = require(path.join(PWD, 'vimrc.json'))
 var defaultRC = path.join('/etc', 'skel', '.bashrc')
 var softwareJSON = require(path.join(path.dirname(__dirname), 'software.json'))
 var repoJSON = require(path.join(path.dirname(__dirname), 'repos.json'))
 
-const HOME = process.env['HOME']
-const EMAIL = process.argv[3]
-const PWD = process.argv[2]
 var software = ''
 
 var options = {
@@ -17,6 +18,7 @@ var options = {
   EMAIL: EMAIL,
   PWD: PWD // PRESENT WORKING DIRECTORY
 }
+vimConfig()
 
 function getSoftwarePreference (cb) {
   const rl = readLine.createInterface({
@@ -86,6 +88,19 @@ function rsaConfig () {
   })
 }
 
+function vimConfig () {
+  fs.copy(path.join(PWD, '.vim'), path.join(HOME, '.vim2'), err => {
+    if (err) console.log(err)
+    var str = ''
+
+    for (var i = 0; i < vimrcJSON['config'].length; i++) {
+      str += vimrcJSON['config'][i] + '\n'
+    }
+    fs.writeFile(path.join(HOME, '.vimrc'), str)
+    console.log('successfully configured vim...')
+  })
+}
+
 function installSoftware (list) {
   execa.shell(`sudo apt-add-repository ${list.repos} && sudo apt-get update && sudo apt-get install ${list.software} -y`).stdout.pipe(process.stdout)
 }
@@ -94,4 +109,5 @@ getSoftwarePreference(function (list) {
   rsaConfig()
   installSoftware(list)
   bashrcConfig(defaultRC, options)
+  vimConfig()
 })
