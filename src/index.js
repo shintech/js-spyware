@@ -5,6 +5,7 @@ import path from 'path'
 import bashrcConfig from './random-ps1/index'
 import logger from 'winston-color'
 import chalk from 'chalk'
+import getStream from 'get-stream'
 
 const HOME = process.env['HOME']
 const EMAIL = process.argv[3]
@@ -13,12 +14,11 @@ const vimrcJSON = require(path.join(PWD, 'vimrc.json'))
 var defaultRC = path.join('/etc', 'skel', '.bashrc')
 var softwareJSON = require(path.join(path.dirname(__dirname), 'software.json'))
 var repoJSON = require(path.join(path.dirname(__dirname), 'repos.json'))
-
-var software = ''
-
+var pkg = require(path.join(PWD, 'package.json'))
 var user = process.env['USER']
 var uid = process.geteuid(user)
 var gid = process.getgid(user)
+var software = ''
 
 var options = {
   HOME: HOME,
@@ -27,7 +27,19 @@ var options = {
   logger: logger
 }
 
-var pkg = require(path.join(PWD, 'package.json'))
+master(function () {
+  logger.info('All done...')
+})
+
+function master (cb) {
+  getSoftwarePreference(function (list) {
+    rsaConfig()
+    bashrcConfig(defaultRC, options)
+    vimConfig()
+    autofsConfig()
+    installSoftware(list, cb)
+  })
+}
 
 function getSoftwarePreference (cb) {
   logger.info(`${chalk.red('Spyware Installer version: ', pkg.version)}`)
@@ -123,14 +135,13 @@ function autofsConfig () {
   })
 }
 
-function installSoftware (list) {
-  execa.shell(`sudo apt-add-repository ${list.repos} && sudo apt-get update && sudo apt-get install ${list.software} -y`).stdout.pipe(process.stdout)
-}
+function installSoftware (list, cb) {
+  var command = `sudo apt-add-repository ${list.repos} && sudo apt-get update && sudo apt-get install ${list.software} -y`
+  const stream = execa.shell(command).stdout
 
-getSoftwarePreference(function (list) {
-  rsaConfig()
-  installSoftware(list)
-  bashrcConfig(defaultRC, options)
-  vimConfig()
-  autofsConfig()
-})
+  stream.pipe(process.stdout)
+
+  getStream(stream).then(value => {
+    cb()
+  })
+}
