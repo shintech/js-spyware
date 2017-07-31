@@ -1,0 +1,10 @@
+{
+  "desktop": [
+    "ppa:webupd8team/atom", "ppa:ansible/ansible", "ppa:numix/ppa" 
+  ],
+  "server": [
+    "ppa:ansible/ansible"
+  ],
+  "rpi": [
+  ]
+}

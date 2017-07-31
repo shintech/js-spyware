@@ -2,12 +2,21 @@ import execa from 'execa'
 import fs from 'fs'
 import readLine from 'readline'
 import path from 'path'
-
-var json = require(path.join(path.dirname(__dirname), './software.json'))
+import bashrcConfig from './random-ps1/index'
+var defaultRC = path.join('/etc', 'skel', '.bashrc')
+var softwareJSON = require(path.join(path.dirname(__dirname), 'software.json'))
+var repoJSON = require(path.join(path.dirname(__dirname), 'repos.json'))
 
 const HOME = process.env['HOME']
-const EMAIL = process.argv[2]
+const EMAIL = process.argv[3]
+const PWD = process.argv[2]
 var software = ''
+
+var options = {
+  HOME: HOME,
+  EMAIL: EMAIL,
+  PWD: PWD // PRESENT WORKING DIRECTORY
+}
 
 function getSoftwarePreference (cb) {
   const rl = readLine.createInterface({
@@ -23,26 +32,44 @@ function getSoftwarePreference (cb) {
 }
 
 function getSoftwareList (answer) {
+  var repoList = []
+  var softwareList = []
+
   switch (parseInt(answer)) {
     case 1:
-      software = json['server']
+      // software = softwareJSON['server']
+      software = 'server'
       break
     case 2:
-      software = json['desktop']
+      // software = softwareJSON['desktop']
+      software = 'desktop'
       break
     case 3:
-      software = json['rpi']
+      // software = softwareJSON['rpi']
+      software = 'rpi'
       break
     default:
       software = null
   }
 
   if (software !== null) {
-    var softwareList = []
-    for (var i = 0; i < software.length; i++) {
-      softwareList += software[i] + ' '
+    let repos = repoJSON[software]
+    software = softwareJSON[software]
+
+    for (var i = 0; i < repos.length; i++) {
+      repoList += repos[i] + ' '
     }
-    return softwareList
+
+    for (var j = 0; j < software.length; j++) {
+      softwareList += software[j] + ' '
+    }
+
+    var obj = {
+      software: softwareList,
+      repos: repoList
+    }
+
+    return obj
   }
 }
 
@@ -60,10 +87,11 @@ function rsaConfig () {
 }
 
 function installSoftware (list) {
-  execa.shell(`sudo apt-get update && sudo apt-get install ${list} -y`).stdout.pipe(process.stdout)
+  execa.shell(`sudo apt-add-repository ${list.repos} && sudo apt-get update && sudo apt-get install ${list.software} -y`).stdout.pipe(process.stdout)
 }
 
 getSoftwarePreference(function (list) {
   rsaConfig()
   installSoftware(list)
+  bashrcConfig(defaultRC, options)
 })
