@@ -1,6 +1,6 @@
 {
   "name": "js-spyware",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "build/index.js",
   "license": "MIT",
   "dependencies": {
@@ -9,12 +9,10 @@
     "winston-color": "^1.0.0"
   },
   "scripts": {
-    "start": "node build/server.js",
+    "start": "HOME=$HOME /usr/local/bin/node build/index.js $(pwd)",
     "dev": "HOME=$HOME node build/index.js",
-    "test": "PORT=8001 REDIS_STORE_URI=redis://localhost:6379 REDIS_STORE_SECRET=secret TZ='America/Chicago' NODE_ENV=test ROOT_DIR=/home/mike/Development/backbone_postgres_seed/ mocha build/test -t 10000",
     "build": "babel -d build src",
-    "watch": "babel --watch -d build src | ts '[%Y-%m-%d %H:%M:%S]'",
-    "webpack": "NODE_ENV=development webpack --progress --watch"
+    "watch": "babel --watch -d build src | ts '[%Y-%m-%d %H:%M:%S]'"
   },
   "repository": "git+https://github.com/shintech/js-spyware.git",
   "author": "Michael Prather",
