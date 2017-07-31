@@ -3,6 +3,9 @@ import fs from 'fs-extra'
 import readLine from 'readline'
 import path from 'path'
 import bashrcConfig from './random-ps1/index'
+import logger from 'winston-color'
+import chalk from 'chalk'
+
 const HOME = process.env['HOME']
 const EMAIL = process.argv[3]
 const PWD = process.argv[2]
@@ -13,14 +16,21 @@ var repoJSON = require(path.join(path.dirname(__dirname), 'repos.json'))
 
 var software = ''
 
+var user = process.env['USER']
+var uid = process.geteuid(user)
+var gid = process.getgid(user)
+
 var options = {
   HOME: HOME,
   EMAIL: EMAIL,
-  PWD: PWD // PRESENT WORKING DIRECTORY
+  PWD: PWD, // PRESENT WORKING DIRECTORY,
+  logger: logger
 }
-vimConfig()
+
+var pkg = require(path.join(PWD, 'package.json'))
 
 function getSoftwarePreference (cb) {
+  logger.info(`${chalk.red('Spyware Installer version: ', pkg.version)}`)
   const rl = readLine.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -39,15 +49,12 @@ function getSoftwareList (answer) {
 
   switch (parseInt(answer)) {
     case 1:
-      // software = softwareJSON['server']
       software = 'server'
       break
     case 2:
-      // software = softwareJSON['desktop']
       software = 'desktop'
       break
     case 3:
-      // software = softwareJSON['rpi']
       software = 'rpi'
       break
     default:
@@ -78,26 +85,41 @@ function getSoftwareList (answer) {
 function rsaConfig () {
   fs.stat(`${HOME}/.ssh/id_rsa`, (err, result) => {
     if (err && err.path !== `${HOME}/.ssh/id_rsa`) {
-      console.log(err)
+      logger.error(err)
     }
     if (result === undefined) {
       execa.shell(`ssh-keygen -t rsa -b 4096 -f ${HOME}/.ssh/id_rsa.test -C ${EMAIL} -q -N ""`).stdout.pipe(process.stdout)
     } else {
-      console.log('id_rsa was found...\nskipping...')
+      logger.info('id_rsa was found...')
+      logger.info('skipping...')
     }
   })
 }
 
 function vimConfig () {
   fs.copy(path.join(PWD, '.vim'), path.join(HOME, '.vim2'), err => {
-    if (err) console.log(err)
+    if (err) {
+      logger.error(err)
+    }
+
     var str = ''
 
     for (var i = 0; i < vimrcJSON['config'].length; i++) {
       str += vimrcJSON['config'][i] + '\n'
     }
     fs.writeFile(path.join(HOME, '.vimrc'), str)
-    console.log('successfully configured vim...')
+    logger.info('successfully configured vim...')
+  })
+}
+
+function autofsConfig () {
+  const str = `printf "+dir:/etc/auto.master.d\n+auto.master\n/mnt /etc/auto.sshfs uid=${uid},gid=${gid},--timeout=30,--ghost\n" | sudo tee /home/mike/auto.master.b`
+  logger.info('autofs configuration...')
+  execa.shell(str).then(() => {
+    logger.info('autofs configuration complete...')
+  })
+  .catch((err) => {
+    logger.error(err)
   })
 }
 
@@ -110,4 +132,5 @@ getSoftwarePreference(function (list) {
   installSoftware(list)
   bashrcConfig(defaultRC, options)
   vimConfig()
+  autofsConfig()
 })
